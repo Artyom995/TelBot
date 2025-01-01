@@ -2,7 +2,7 @@
 import aiosqlite
 
 from aiogram import  types
-from config import DB_NAME, quiz_data
+from config import DB_NAME, quiz_data, user_answers 
 from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -13,9 +13,8 @@ async def create_table():
         # Выполняем SQL-запрос к базе данных
         await db.execute('''CREATE TABLE IF NOT EXISTS quiz_state (user_id INTEGER PRIMARY KEY, question_index INTEGER)''')
         # Сохраняем изменения
-        await db.commit()
-
-
+        await db.commit()     
+        
 # добавление в базу нового пользователя и увеличение значение question_index на единицу,
 async def update_quiz_index(user_id, index):
     # Создаем соединение с базой данных (если она не существует, она будет создана)
