@@ -1,9 +1,10 @@
-
+import sqlite3
 from aiogram import  types, F
 from aiogram.filters.command import Command
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from function import new_quiz, get_quiz_index, update_quiz_index, get_question
-from config import quiz_data, user_answers 
+from config import quiz_data
+from database import create_database, save_user_answer, get_user_answer, clear_user_answers
 
 
 from bot import dp
@@ -11,9 +12,11 @@ from bot import dp
 # Хэндлер на команду /start
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    user_id = message.from_user.id
+    user_id = message.from_user.id    
+    #создаем базу данных
+    create_database()
+
     # Сброс данных о правильных ответах для нового квиза
-    user_answers[user_id] = []  # Очищаем список правильных ответов
     # Логика обработки команды /start
     # await message.answer("Привет! Я бот для проведения квиза. Введите /quiz, чтобы начать.")
     # Создаем сборщика клавиатур типа Reply
@@ -48,10 +51,12 @@ async def right_answer(callback: types.CallbackQuery):
     # Отправляем в чат сообщение, что ответ верный
     await callback.message.answer("Верно!")
 
-    # Сохраняем ответ пользователя в переменную user_answers
-    if callback.from_user.id not in user_answers:
-        user_answers[callback.from_user.id] = []  # Инициализируем список, если его нет
-    user_answers[callback.from_user.id].append(current_question_index)  # Сохраняем индекс текущего вопроса как правильный ответ
+    # Сохраняем ответ пользователя в базу данных
+    user_id = callback.from_user.id
+    answer = current_question_index  # Здесь предполагается, что current_question_index - это ответ пользователя
+    # Сохраняем ответ в базе данных
+    save_user_answer(user_id, answer)
+
     # Обновление номера текущего вопроса в базе данных
     current_question_index += 1
     await update_quiz_index(callback.from_user.id, current_question_index)
@@ -102,21 +107,24 @@ async def wrong_answer(callback: types.CallbackQuery):
         # Уведомление об окончании квиза
         await callback.message.answer("Это был последний вопрос. Квиз завершен!", reply_markup=builder.as_markup(resize_keyboard=True))
 
-@dp.message(F.text=="Посмотреть результаты")
+
+@dp.message(F.text == "Посмотреть результаты")
 @dp.message(Command("results"))
 async def cmd_results(message: types.Message):
-    # Проверяем достигнут ли конец квиза
     user_id = message.from_user.id
-    # Проверяем, есть ли у пользователя сохраненные ответы
-    if user_id in user_answers:
-        correct_answers_count = len(user_answers[user_id])  # Количество правильных ответов
-    else:
+    
+    # Получаем количество правильных ответов из базы данных
+    correct_answers_count = get_user_answer(user_id)  # Используем функцию для получения количества ответов
+    
+    # Если пользователь не имеет сохраненных ответов, correct_answers_count будет None
+    if correct_answers_count is None:
         correct_answers_count = 0  # Если ответов нет, то 0
 
-            # Создаем клавиатуру с кнопкой "Повторить"
+    # Создаем клавиатуру с кнопкой "Повторить"
     builder = ReplyKeyboardBuilder()
     builder.add(types.KeyboardButton(text="Повторить"))
-    # Отправляем новое сообщение без кнопок
+    
+    # Отправляем новое сообщение с результатами
     await message.answer(f"Результаты вашего квиза: {correct_answers_count} из {len(quiz_data)}", reply_markup=builder.as_markup(resize_keyboard=True))
 
         
@@ -124,6 +132,6 @@ async def cmd_results(message: types.Message):
 async def cmd_repeat(message: types.Message):
     user_id = message.from_user.id
     # Сброс данных о правильных ответах для нового квиза
-    user_answers[user_id] = []  # 
+    clear_user_answers()
     # Вызываем команду /start
     await cmd_quiz(message)

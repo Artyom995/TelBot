@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sqlite3
 
 from function import create_table
 from bot import dp, bot

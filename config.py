@@ -1,9 +1,8 @@
 
-
 # Файл для хранения конфигураций, включая токен
-API_TOKEN = '8091370425:AAG_15I-vMYfXZhhl5p4EoW0XngC8k0YSoI'
+API_TOKEN = ''
 DB_NAME = 'quiz_bot.db'
-user_answers = {}
+# user_answers = {}
 # Структура квиза
 quiz_data = [
     {

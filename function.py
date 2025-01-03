@@ -1,8 +1,9 @@
 
 import aiosqlite
+import sqlite3
 
 from aiogram import  types
-from config import DB_NAME, quiz_data, user_answers 
+from config import DB_NAME, quiz_data
 from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
