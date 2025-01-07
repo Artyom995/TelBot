@@ -1,54 +1,28 @@
-
-import aiosqlite
 import sqlite3
 
 from aiogram import  types
-from config import DB_NAME, quiz_data
+from config import quiz_data
 from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from database import update_quiz_index, get_quiz_index
 
-# создаем таблицу, если она еще не существует
-async def create_table():
-    # Создаем соединение с базой данных (если она не существует, то она будет создана)
-    async with aiosqlite.connect('quiz_bot.db') as db:
-        # Выполняем SQL-запрос к базе данных
-        await db.execute('''CREATE TABLE IF NOT EXISTS quiz_state (user_id INTEGER PRIMARY KEY, question_index INTEGER)''')
-        # Сохраняем изменения
-        await db.commit()     
-        
-# добавление в базу нового пользователя и увеличение значение question_index на единицу,
-async def update_quiz_index(user_id, index):
-    # Создаем соединение с базой данных (если она не существует, она будет создана)
-    async with aiosqlite.connect(DB_NAME) as db:
-        # Вставляем новую запись или заменяем ее, если с данным user_id уже существует
-        await db.execute('INSERT OR REPLACE INTO quiz_state (user_id, question_index) VALUES (?, ?)', (user_id, index))
-        # Сохраняем изменения
-        await db.commit()
 
-#  функция, которая получит текущее значение question_index в базе данных для заданного пользователя.       
-async def get_quiz_index(user_id):
-     # Подключаемся к базе данных
-     async with aiosqlite.connect(DB_NAME) as db:
-        # Получаем запись для заданного пользователя
-        async with db.execute('SELECT question_index FROM quiz_state WHERE user_id = (?)', (user_id, )) as cursor:
-            # Возвращаем результат
-            results = await cursor.fetchone()
-            if results is not None:
-                return results[0]
-            else:
-                return 0
 
-# из сообщения узнаем пользователя, сбрасываем счетчик вопросов в 0, и запрашиваем асинхронно следующий вопрос для отправки пользователю в чат
+
+# Функция для сброса квиза и запроса нового вопроса
 async def new_quiz(message):
-    # получаем id пользователя, отправившего сообщение
+    # Получаем id пользователя, отправившего сообщение
     user_id = message.from_user.id
-    # сбрасываем значение текущего индекса вопроса квиза в 0
+    # Сбрасываем значение текущего индекса вопроса квиза в 0
     current_question_index = 0
-    await update_quiz_index(user_id, current_question_index)
-
-    # запрашиваем новый вопрос для квиза
+    correct_answers = 0
+    # Сбрасываем значение ответа на None
+    # Обновляем индекс вопроса и сбрасываем ответ в базе данных
+    await update_quiz_index(user_id, current_question_index, correct_answers)
+    # Запрашиваем новый вопрос для квиза
     await get_question(message, user_id)
 
+    
 #функция которая создает нам колбек-клавиатуру с вариантами ответов
 async def get_question(message, user_id):
     # Запрашиваем из базы текущий индекс для вопроса
